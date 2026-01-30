@@ -1,0 +1,45 @@
+# Terraform files
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Kubernetes secrets and sensitive manifests
+*secret*.yaml
+*secret*.yml
+secrets/
+*.kubeconfig
+kubeconfig
+.kube/
+
+# Kubernetes generated/temporary files
+*.tmp
+*.temp
+.manifests/
+generated-manifests/
+
+# Environment files
+.env
+.env.*
+*.pem
+*.key
+*.crt
+
+# IDE and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
