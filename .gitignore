@@ -43,3 +43,15 @@ generated-manifests/
 *~
 .DS_Store
 Thumbs.db
+
+
+# Go files
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+vendor/

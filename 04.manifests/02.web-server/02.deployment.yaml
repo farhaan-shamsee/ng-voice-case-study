@@ -8,10 +8,12 @@ spec:
   selector:
     matchLabels:
       app: web-server
+      project: ng-voice
   template:
     metadata:
       labels:
         app: web-server
+        project: ng-voice
     spec:
       initContainers:
       - name: init-serving-host

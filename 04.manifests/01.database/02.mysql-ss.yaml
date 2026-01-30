@@ -9,10 +9,12 @@ spec:
   selector:
     matchLabels:
       app: mysql
+      project: ng-voice
   template:
     metadata:
       labels:
         app: mysql
+        project: ng-voice
     spec:
       containers:
       - name: mysql
