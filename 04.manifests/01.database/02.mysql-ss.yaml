@@ -47,6 +47,19 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /var/lib/mysql
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: db-node
+                operator: Exists
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: mysql
+            topologyKey: kubernetes.io/hostname
   volumeClaimTemplates:
   - metadata:
       name: data

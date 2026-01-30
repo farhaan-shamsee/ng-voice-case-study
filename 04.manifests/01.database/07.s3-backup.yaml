@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-s3-sync
+  namespace: database
+spec:
+  schedule: "0 2 * * *"   # every day 2AM
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: mysql-backup
+        spec:
+          restartPolicy: OnFailure
+
+          containers:
+          - name: s3-sync
+            image: amazon/aws-cli:2
+
+            command:
+            - sh
+            - -c
+            - |
+              set -e
+              echo "Syncing backups to S3..."
+              aws s3 sync /backup s3://my-mysql-backups --delete --storage-class STANDARD_IA
+              echo "Done."
+
+            env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: s3-credentials
+                  key: AWS_ACCESS_KEY_ID
+
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: s3-credentials
+                  key: AWS_SECRET_ACCESS_KEY
+
+            volumeMounts:
+            - name: backup-volume
+              mountPath: /backup
+
+          volumes:
+          - name: backup-volume
+            persistentVolumeClaim:
+              claimName: mysql-backup-pvc

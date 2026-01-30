@@ -14,6 +14,6 @@ data:
           root /usr/share/nginx/html;
           index index.html;
         }
-        add_header X-Served-By $hostname;
+        add_header X-Served-By $hostname always;
       }
     }

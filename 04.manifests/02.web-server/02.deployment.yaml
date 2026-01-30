@@ -21,7 +21,7 @@ spec:
           - |
             POD_NAME=$(hostname)
             HOST_SUFFIX=${POD_NAME: -5}
-            echo "<h2>serving-host=Host-$HOST_SUFFIX</h2>" > /init-html/serving-host.html
+            echo "<h2>serving-host=Host-$HOST_SUFFIX</h2>" > /init-html/index.html
         volumeMounts:
         - name: init-volume
           mountPath: /init-html
@@ -37,17 +37,20 @@ spec:
           limits:
             memory: "256Mi"
             cpu: "200m"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
         volumeMounts:
+        - name: init-volume
+          mountPath: /usr/share/nginx/html
+
         - name: nginx-config
           mountPath: /etc/nginx/nginx.conf
           subPath: nginx.conf
 
-        - name: nginx-config
-          mountPath: /usr/share/nginx/html/index.html
-          subPath: index.html
-
-        - name: init-volume
-          mountPath: /usr/share/nginx/html/serving-host
       volumes:
       - name: nginx-config
         configMap:

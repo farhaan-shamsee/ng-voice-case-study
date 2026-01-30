@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-local-backup
+  namespace: database
+  labels:
+    app: mysql-backup
+spec:
+  schedule: "*/30 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: mysql-backup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: backup
+            image: mysql:8
+            command:
+            - sh
+            - -c
+            - |
+              TIMESTAMP=$(date +%F-%H-%M-%S)
+
+              mysqldump -h mysql.database \
+                -uroot -p$MYSQL_ROOT_PASSWORD \
+                --all-databases \
+                | gzip > /backup/backup-$TIMESTAMP.sql.gz
+
+              # keep only last 48 backups (~24h)
+              ls -tp /backup | tail -n +49 | xargs -I {} rm -- /backup/{}
+            env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: password
+            volumeMounts:
+            - name: backup-volume
+              mountPath: /backup
+          volumes:
+          - name: backup-volume
+            persistentVolumeClaim:
+              claimName: mysql-backup-pvc
