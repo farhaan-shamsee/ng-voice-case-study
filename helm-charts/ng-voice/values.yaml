@@ -39,7 +39,7 @@ mysql:
     storageClass: "local-path"
     size: 5Gi
   
-  nodeSelector:
+  nodeLabel:
     db-node: "true"
   
   labels:

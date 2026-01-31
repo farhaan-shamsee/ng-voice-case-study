@@ -49,8 +49,10 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
-              - key: db-node
+              {{- range $key, $value := .Values.mysql.nodeLabel }}
+              - key: {{ $key }}
                 operator: Exists
+              {{- end }}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
