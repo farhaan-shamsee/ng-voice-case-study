@@ -1,0 +1,156 @@
+# Default values for ng-voice helm chart
+
+# Namespaces
+namespaces:
+  database: database
+  webServer: web-server
+
+# MySQL Database Configuration
+mysql:
+  enabled: true
+  name: mysql
+  replicas: 2
+  image:
+    repository: mysql
+    tag: "8.0"
+    pullPolicy: IfNotPresent
+  
+  secret:
+    name: mysql-secret
+    # Base64 encoded value of 'mysql_password'
+    password: bXlzcWxfcGFzc3dvcmQ=
+  
+  service:
+    name: mysql
+    port: 3306
+    type: ClusterIP
+    headless: true
+  
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+  
+  persistence:
+    enabled: true
+    storageClass: "local-path"
+    size: 5Gi
+  
+  nodeSelector:
+    db-node: "true"
+  
+  labels:
+    app: mysql
+    project: ng-voice
+  
+  # Backup configuration
+  backup:
+    enabled: true
+    pvc:
+      name: mysql-backup
+      storageClass: "local-path"
+      size: 2Gi
+    
+    internal:
+      enabled: true
+      schedule: "*/2 * * * *"
+      image:
+        repository: mysql
+        tag: "8.0"
+      retention: "7"
+    
+    s3:
+      enabled: false
+      schedule: "0 3 * * *"
+      bucket: "my-mysql-backups"
+      region: "us-east-1"
+      image:
+        repository: amazon/aws-cli
+        tag: "latest"
+      # AWS credentials should be provided via secret
+      awsSecretName: aws-credentials
+
+# Web Server Configuration
+webServer:
+  enabled: true
+  name: web-server
+  replicas: 3
+  
+  image:
+    repository: nginx
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  initContainer:
+    image:
+      repository: busybox
+      tag: "latest"
+  
+  service:
+    name: web-server
+    type: NodePort
+    port: 80
+    targetPort: 80
+    nodePort: 30090
+    sessionAffinity: None
+  
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+  
+  labels:
+    app: web-server
+    access: mysql-client
+  
+  nginx:
+    config: |
+      worker_processes 1;
+      events { worker_connections 1024; }
+      http {
+        server {
+          listen 80;
+          location / {
+            root /usr/share/nginx/html;
+            index index.html;
+          }
+          add_header X-Served-By $hostname always;
+        }
+      }
+  
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /
+      port: 80
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# Network Policy Configuration
+networkPolicy:
+  enabled: true
+  database:
+    name: db-allow-web-only
+    allowFrom:
+      namespace: web-server
+      podLabel: mysql-client
+
+# Secondary Network (Multus)
+secondaryNetwork:
+  enabled: false
+  name: secondary-net
+  type: macvlan
+  master: eth0
+  mode: bridge
+  ipam:
+    type: host-local
+    subnet: 192.168.100.0/24
+    rangeStart: 192.168.100.10
+    rangeEnd: 192.168.100.50
+    gateway: 192.168.100.1

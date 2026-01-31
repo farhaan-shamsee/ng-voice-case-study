@@ -1,0 +1,18 @@
+{{- if .Values.webServer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.webServer.service.name }}
+  namespace: {{ .Values.namespaces.webServer }}
+spec:
+  selector:
+    {{- toYaml .Values.webServer.labels | nindent 4 }}
+  ports:
+  - port: {{ .Values.webServer.service.port }}
+    targetPort: {{ .Values.webServer.service.targetPort }}
+    {{- if .Values.webServer.service.nodePort }}
+    nodePort: {{ .Values.webServer.service.nodePort }}
+    {{- end }}
+  type: {{ .Values.webServer.service.type }}
+  sessionAffinity: {{ .Values.webServer.service.sessionAffinity }}
+{{- end }}

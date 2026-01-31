@@ -1,0 +1,17 @@
+{{- if .Values.namespaces }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespaces.database }}
+  labels:
+    name: {{ .Values.namespaces.database }}
+    kubernetes.io/metadata.name: {{ .Values.namespaces.database }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespaces.webServer }}
+  labels:
+    name: {{ .Values.namespaces.webServer }}
+    kubernetes.io/metadata.name: {{ .Values.namespaces.webServer }}
+{{- end }}

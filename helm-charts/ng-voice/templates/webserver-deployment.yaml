@@ -1,0 +1,57 @@
+{{- if .Values.webServer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.webServer.name }}
+  namespace: {{ .Values.namespaces.webServer }}
+spec:
+  replicas: {{ .Values.webServer.replicas }}
+  selector:
+    matchLabels:
+      {{- toYaml .Values.webServer.labels | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- toYaml .Values.webServer.labels | nindent 8 }}
+    spec:
+      initContainers:
+      - name: init-serving-host
+        image: {{ .Values.webServer.initContainer.image.repository }}:{{ .Values.webServer.initContainer.image.tag }}
+        command: ['sh', '-c']
+        args:
+          - |
+            POD_NAME=$(hostname)
+            HOST_SUFFIX=${POD_NAME: -5}
+            echo "<h2>serving-host=Host-$HOST_SUFFIX</h2>" > /init-html/index.html
+        volumeMounts:
+        - name: init-volume
+          mountPath: /init-html
+      containers:
+      - name: nginx
+        image: {{ .Values.webServer.image.repository }}:{{ .Values.webServer.image.tag }}
+        imagePullPolicy: {{ .Values.webServer.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.webServer.service.targetPort }}
+        resources:
+          {{- toYaml .Values.webServer.resources | nindent 10 }}
+        {{- if .Values.webServer.readinessProbe.enabled }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.webServer.readinessProbe.httpGet.path }}
+            port: {{ .Values.webServer.readinessProbe.httpGet.port }}
+          initialDelaySeconds: {{ .Values.webServer.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.webServer.readinessProbe.periodSeconds }}
+        {{- end }}
+        volumeMounts:
+        - name: init-volume
+          mountPath: /usr/share/nginx/html
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: nginx-config
+      - name: init-volume
+        emptyDir: {}
+{{- end }}

@@ -1,0 +1,13 @@
+apiVersion: v2
+name: ng-voice devops case study
+description: A Helm chart for NG-Voice devops case study with MySQL database and web server
+type: application
+version: 1.0.0
+appVersion: "1.0"
+keywords:
+  - mysql
+  - nginx
+  - web-server
+  - database
+maintainers:
+  - name: Farhaan Shamsee

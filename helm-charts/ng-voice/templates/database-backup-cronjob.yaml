@@ -1,0 +1,48 @@
+{{- if and .Values.mysql.enabled .Values.mysql.backup.enabled .Values.mysql.backup.internal.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-local-backup
+  namespace: {{ .Values.namespaces.database }}
+  labels:
+    app: mysql-backup
+spec:
+  schedule: {{ .Values.mysql.backup.internal.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: mysql-backup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: backup
+            image: {{ .Values.mysql.backup.internal.image.repository }}:{{ .Values.mysql.backup.internal.image.tag }}
+            command:
+            - sh
+            - -c
+            - |
+              TIMESTAMP=$(date +%F-%H-%M-%S)
+
+              mysqldump -h {{ .Values.mysql.service.name }}.{{ .Values.namespaces.database }} \
+                -uroot -p$MYSQL_ROOT_PASSWORD \
+                --all-databases \
+                | gzip > /backup/backup-$TIMESTAMP.sql.gz
+
+              # keep only last {{ .Values.mysql.backup.internal.retention }} backups
+              ls -tp /backup | tail -n +{{ add1 (atoi .Values.mysql.backup.internal.retention) }} | xargs -I {} rm -- /backup/{}
+            env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mysql.secret.name }}
+                  key: password
+            volumeMounts:
+            - name: backup-volume
+              mountPath: /backup
+          volumes:
+          - name: backup-volume
+            persistentVolumeClaim:
+              claimName: {{ .Values.mysql.backup.pvc.name }}
+{{- end }}

@@ -1,0 +1,69 @@
+{{- if .Values.mysql.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.mysql.name }}
+  namespace: {{ .Values.namespaces.database }}
+spec:
+  serviceName: {{ .Values.mysql.service.name }}
+  replicas: {{ .Values.mysql.replicas }}
+  selector:
+    matchLabels:
+      {{- toYaml .Values.mysql.labels | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- toYaml .Values.mysql.labels | nindent 8 }}
+    spec:
+      containers:
+      - name: mysql
+        image: {{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}
+        imagePullPolicy: {{ .Values.mysql.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.mysql.service.port }}
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.mysql.secret.name }}
+              key: password
+        resources:
+          {{- toYaml .Values.mysql.resources | nindent 10 }}
+        livenessProbe:
+          exec:
+            command:
+            - mysqladmin
+            - ping
+            - -h
+            - localhost
+            - -u
+            - root
+            - -p${MYSQL_ROOT_PASSWORD}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/mysql
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: db-node
+                operator: Exists
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: {{ .Values.mysql.labels.app }}
+            topologyKey: kubernetes.io/hostname
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: {{ .Values.mysql.persistence.storageClass }}
+      resources:
+        requests:
+          storage: {{ .Values.mysql.persistence.size }}
+{{- end }}

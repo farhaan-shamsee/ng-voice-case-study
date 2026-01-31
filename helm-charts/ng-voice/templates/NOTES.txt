@@ -1,0 +1,80 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get all {{ .Release.Name }}
+
+=============================================================================
+
+NG-Voice DevOps Case Study Components:
+
+{{- if .Values.mysql.enabled }}
+
+1. MySQL Database (StatefulSet)
+   - Namespace: {{ .Values.namespaces.database }}
+   - Replicas: {{ .Values.mysql.replicas }}
+   - Service: {{ .Values.mysql.service.name }}.{{ .Values.namespaces.database }}
+   - Port: {{ .Values.mysql.service.port }}
+
+   Check MySQL pods:
+   $ kubectl get pods -n {{ .Values.namespaces.database }}
+
+   Get MySQL password:
+   $ kubectl get secret {{ .Values.mysql.secret.name }} -n {{ .Values.namespaces.database }} -o jsonpath='{.data.password}' | base64 -d
+
+{{- if .Values.mysql.backup.enabled }}
+   Backup Configuration:
+   - PVC: {{ .Values.mysql.backup.pvc.name }}
+   {{- if .Values.mysql.backup.internal.enabled }}
+   - Internal Backup Schedule: {{ .Values.mysql.backup.internal.schedule }}
+   {{- end }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.webServer.enabled }}
+
+2. Web Server (Deployment)
+   - Namespace: {{ .Values.namespaces.webServer }}
+   - Replicas: {{ .Values.webServer.replicas }}
+   - Service: {{ .Values.webServer.service.name }}.{{ .Values.namespaces.webServer }}
+   - Type: {{ .Values.webServer.service.type }}
+
+   Check web server pods:
+   $ kubectl get pods -n {{ .Values.namespaces.webServer }}
+
+{{- if eq .Values.webServer.service.type "NodePort" }}
+   Get NodePort:
+   $ kubectl get svc {{ .Values.webServer.service.name }} -n {{ .Values.namespaces.webServer }}
+{{- end }}
+
+   Port-forward to access locally:
+   $ kubectl port-forward -n {{ .Values.namespaces.webServer }} svc/{{ .Values.webServer.service.name }} 8080:{{ .Values.webServer.service.port }}
+
+   Then visit: http://localhost:8080
+{{- end }}
+
+{{- if .Values.networkPolicy.enabled }}
+
+3. Network Policy
+   - Database pods are isolated
+   - Only pods with label 'access: {{ .Values.networkPolicy.database.allowFrom.podLabel }}' in '{{ .Values.networkPolicy.database.allowFrom.namespace }}' namespace can access MySQL
+{{- end }}
+
+{{- if .Values.secondaryNetwork.enabled }}
+
+4. Secondary Network (Multus CNI)
+   - Name: {{ .Values.secondaryNetwork.name }}
+   - Type: {{ .Values.secondaryNetwork.type }}
+   - Subnet: {{ .Values.secondaryNetwork.ipam.subnet }}
+{{- end }}
+
+=============================================================================
+
+To customize the installation, you can modify values.yaml or use --set flags:
+
+  $ helm upgrade {{ .Release.Name }} . --set mysql.replicas=3 --set webServer.replicas=5
+
+For more information, see the README.md file.

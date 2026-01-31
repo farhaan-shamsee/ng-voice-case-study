@@ -1,0 +1,25 @@
+{{- if and .Values.mysql.enabled .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.networkPolicy.database.name }}
+  namespace: {{ .Values.namespaces.database }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Values.mysql.labels.app }}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: {{ .Values.networkPolicy.database.allowFrom.namespace }}
+      podSelector:
+        matchLabels:
+          access: {{ .Values.networkPolicy.database.allowFrom.podLabel }}
+    
+    ports:
+    - protocol: TCP
+      port: {{ .Values.mysql.service.port }}
+{{- end }}
