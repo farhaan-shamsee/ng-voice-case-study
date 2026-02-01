@@ -17,13 +17,19 @@ This also contains Kustomization files for easier management of resources.
 kubectl apply -k namespaces/
 ```
 
-### 2. Database Deployment
+### 2. Multus CNI Installation
+
+```bash
+kubectl apply -k crds/
+```
+
+### 3. Database Deployment
 
 ```bash
 kubectl apply -k database/
 ```
 
-### 3. Web Server Deployment
+### 4. Web Server Deployment
 
 ```bash
 kubectl apply -k web-server/

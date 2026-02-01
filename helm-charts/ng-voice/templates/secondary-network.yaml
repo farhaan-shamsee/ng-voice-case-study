@@ -5,18 +5,17 @@ metadata:
   name: {{ .Values.secondaryNetwork.name }}
   namespace: {{ .Values.namespaces.webServer }}
 spec:
-  config: |
-    {
-      "cniVersion": "0.3.1",
-      "type": "{{ .Values.secondaryNetwork.type }}",
-      "master": "{{ .Values.secondaryNetwork.master }}",
-      "mode": "{{ .Values.secondaryNetwork.mode }}",
-      "ipam": {
-        "type": "{{ .Values.secondaryNetwork.ipam.type }}",
-        "subnet": "{{ .Values.secondaryNetwork.ipam.subnet }}",
-        "rangeStart": "{{ .Values.secondaryNetwork.ipam.rangeStart }}",
-        "rangeEnd": "{{ .Values.secondaryNetwork.ipam.rangeEnd }}",
-        "gateway": "{{ .Values.secondaryNetwork.ipam.gateway }}"
-      }
+  config: '{
+    "cniVersion": "0.3.1",
+    "type": "{{ .Values.secondaryNetwork.type }}",
+    "bridge": "{{ .Values.secondaryNetwork.bridge }}",
+    "ipam": {
+      "type": "{{ .Values.secondaryNetwork.ipam.type }}",
+      "subnet": "{{ .Values.secondaryNetwork.ipam.subnet }}",
+      "rangeStart": "{{ .Values.secondaryNetwork.ipam.rangeStart }}",
+      "rangeEnd": "{{ .Values.secondaryNetwork.ipam.rangeEnd }}",
+      "routes": [{{- range $index, $route := .Values.secondaryNetwork.ipam.routes }}{{- if $index }},{{- end }}{"dst": "{{ $route.dst }}"}{{- end }}],
+      "gateway": "{{ .Values.secondaryNetwork.ipam.gateway }}"
     }
+  }'
 {{- end }}

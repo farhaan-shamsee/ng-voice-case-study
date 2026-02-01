@@ -11,6 +11,10 @@ spec:
       {{- toYaml .Values.webServer.labels | nindent 6 }}
   template:
     metadata:
+      {{- if .Values.secondaryNetwork.enabled }}
+      annotations:
+        k8s.v1.cni.cncf.io/networks: {{ .Values.secondaryNetwork.name }}
+      {{- end }}
       labels:
         {{- toYaml .Values.webServer.labels | nindent 8 }}
     spec:

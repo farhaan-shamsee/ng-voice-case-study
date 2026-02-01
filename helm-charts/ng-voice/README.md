@@ -30,4 +30,4 @@ This Helm chart deploys the following components:
 
 ### 3. Networking
 - Network policies to isolate database access
-- Optional Multus CNI secondary network support
+- Multus CNI secondary network support

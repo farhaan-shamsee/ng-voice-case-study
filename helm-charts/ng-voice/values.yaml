@@ -144,14 +144,15 @@ networkPolicy:
 
 # Secondary Network (Multus)
 secondaryNetwork:
-  enabled: false
-  name: secondary-net
-  type: macvlan
-  master: eth0
-  mode: bridge
+  enabled: true
+  name: secondary-network
+  type: bridge
+  bridge: br1
   ipam:
     type: host-local
-    subnet: 192.168.100.0/24
-    rangeStart: 192.168.100.10
-    rangeEnd: 192.168.100.50
-    gateway: 192.168.100.1
+    subnet: 192.168.50.0/24
+    rangeStart: 192.168.50.100
+    rangeEnd: 192.168.50.200
+    gateway: 192.168.50.1
+    routes:
+      - dst: 0.0.0.0/0

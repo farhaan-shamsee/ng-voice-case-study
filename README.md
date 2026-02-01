@@ -12,21 +12,28 @@ This repository implements the case study requirements end to end on Kubernetes:
 
 ## Prerequisites
 
-- `Docker`, `k3d` and `kubectl`.
+- `Docker`, `kind` and `kubectl`.
 - `helm` v3 installed.
 - Basic DNS resolution inside the cluster.
-
 ## Deployment
 
-### Local Cluster (k3d)
+### Local Cluster (kind)
 
-Create a k3d cluster with one server and two agents, with node labels for database scheduling:
+Create a kind cluster with one control-plane and two worker nodes, with node labels for database scheduling:
 
 ```sh
-k3d cluster create --config ./infrastructure/local/k3d/cluster-config.yaml
+kind create cluster --config ./infrastructure/local/kind/cluster-config.yaml
+
+# Install CNI plugins on the node, this is required for multi-networking support
+docker ps # List running containers to get the kind node name
+docker exec -it <kind-node-name> sh
+cd /tmp
+curl -L -o cni-plugins.tgz https://github.com/containernetworking/plugins/releases/download/v1.6.2/cni-plugins-linux-amd64-v1.6.2.tgz
+tar -C /opt/cni/bin -xzf cni-plugins.tgz
+
 ```
 
-This labels both agent nodes with `db-node=node-1` and `db-node=node-2`, allowing the MySQL `StatefulSet` to schedule pods based on the `nodeAffinity` rules defined in the chart.
+This labels both worker nodes with `db-node=node-1` and `db-node=node-2`, allowing the MySQL `StatefulSet` to schedule pods based on the `nodeAffinity` rules defined in the chart.
 
 ### Install via Helm
 
@@ -59,9 +66,9 @@ kubectl -n web-server port-forward svc/web-server 8080:80
 
 ### 1. Kubernetes Cluster
 
-- Local deployment supported via k3d.
+- Local deployment supported via kind.
 
-> K3d is a lightweight Kubernetes distribution by Rancher. More info at the [K3d official website](https://k3d.io/stable/).
+> kind (Kubernetes IN Docker) is a tool for running local Kubernetes clusters using Docker container nodes. More info at the [kind official website](https://kind.sigs.k8s.io/).
 
 ### 2. Database with Persistent Data (MySQL)
 
@@ -139,7 +146,10 @@ Optional off-cluster backups to S3 can be enabled via a CronJob that syncs `/bac
 
 ### 6. Multi Networking
 
-Not done yet.
+> Requirement: Find and implement if possible a flexible way to connect the Pod to a new network other than the Pods networks with proper routes. no LoadBalancer service is needed.
+
+- Implemented using Multus CNI to attach an additional network interface to the `web-server` pods.
+- Used a simple bridge network for demonstration.
 
 ### 7. Scheduling Specific DB Replicas to Nodes
 
