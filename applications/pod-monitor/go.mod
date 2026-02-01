@@ -1,6 +1,6 @@
 module github.com/farhaan-shamsee/ng-voice-case-study/04.manifests/04.go-controllerz
 
-go 1.25.1
+go 1.25.0
 
 require (
 	k8s.io/api v0.35.0

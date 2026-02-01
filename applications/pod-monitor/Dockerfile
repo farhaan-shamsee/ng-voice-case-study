@@ -3,35 +3,27 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
-# Copy go mod files first for better caching
+# Copy go module files first (for better caching)
 COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy source code
-COPY . .
+COPY main.go .
 
-# Build with optimizations
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-w -s" -o watcher .
+# Build statically-linked binary with maximum optimization
+RUN CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64 \
+    go build \
+    -ldflags="-s -w" \
+    -trimpath \
+    -o pod-watcher .
 
-# Final stage
-FROM alpine:latest
+# Runtime stage
+FROM gcr.io/distroless/static-debian12:nonroot
 
-# Add ca-certificates for HTTPS connections
-RUN apk --no-cache add ca-certificates
+COPY --from=builder /app/pod-watcher /pod-watcher
 
-WORKDIR /app
+USER nonroot:nonroot
 
-# Create non-root user
-RUN addgroup -g 1000 appgroup && \
-    adduser -D -u 1000 -G appgroup appuser
-
-# Copy only the binary from builder
-COPY --from=builder /app/watcher .
-
-# Change ownership
-RUN chown -R appuser:appgroup /app
-
-# Use non-root user
-USER appuser
-
-CMD ["./watcher"]
+ENTRYPOINT ["/pod-watcher"]

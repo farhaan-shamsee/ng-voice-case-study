@@ -157,3 +157,34 @@ secondaryNetwork:
     gateway: 192.168.50.1
     routes:
       - dst: 0.0.0.0/0
+
+# Pod Watcher (Go Application)
+podWatcher:
+  enabled: true
+  name: pod-watcher
+  namespace: default
+  replicas: 1
+  
+  image:
+    repository: farhaanshamsee/pod-watcher
+    tag: "v2.0"
+    pullPolicy: IfNotPresent
+  
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "100m"
+      memory: "128Mi"
+  
+  serviceAccount:
+    create: true
+    name: pod-watcher
+  
+  rbac:
+    create: true
+    clusterRole:
+      name: pod-watcher
+    clusterRoleBinding:
+      name: pod-watcher

@@ -16,7 +16,7 @@ spec:
       serviceAccountName: pod-watcher
       containers:
       - name: controller
-        image: farhaanshamsee/pod-watcher:v1.0
+        image: farhaanshamsee/pod-watcher:v2.0
         imagePullPolicy: IfNotPresent
         resources:
           requests:
