@@ -2,7 +2,13 @@
 
 ## Overview
 
-This repository implements the case study requirements end to end on Kubernetes: a persistent MySQL/MariaDB database, a multi-replica web server with custom configuration and init-time content mutation, enforced network isolation to the database, a disaster recovery strategy with backup and restore verification, scheduling strategies for database replicas, and a small Golang application to monitor pod lifecycle events. All components are deployable via Helm.
+This repository implements the case study requirements end to end on Kubernetes:
+
+- Persistent MySQL/MariaDB database
+- Multi-replica web server with custom configuration and init-time content mutation
+- Enforced network isolation to the database
+- Disaster recovery strategy with backup and restore verification, scheduling strategies for database replicas
+- Small Golang application to monitor pod lifecycle events. All components are deployable via Helm.
 
 ## Prerequisites
 
@@ -14,27 +20,26 @@ This repository implements the case study requirements end to end on Kubernetes:
 
 ### Local Cluster (k3d)
 
-Create a k3d cluster with one server and two agents:
+Create a k3d cluster with one server and two agents, with node labels for database scheduling:
 
 ```sh
-k3d cluster create demo \
-  --servers 1 \
-  --agents 2 \
-  -p "30000-30100:30000-30100@loadbalancer"
+k3d cluster create --config ./infrastructure/local/k3d/cluster-config.yaml
 ```
+
+This labels both agent nodes with `db-node=node-1` and `db-node=node-2`, allowing the MySQL `StatefulSet` to schedule pods based on the `nodeAffinity` rules defined in the chart.
 
 ### Install via Helm
 
 From the Helm chart directory (replace `.` if needed):
 
 ```sh
-helm install ng-voice . -n default
+helm install ng-voice ./helm-charts/ng-voice -n default
 ```
 
 To customize replicas, resources, and configuration:
 
 ```sh
-helm upgrade --install ng-voice . -n default -f values.yaml
+helm upgrade --install ng-voice ./helm-charts/ng-voice -n default -f values.yaml
 ```
 
 Uninstall:

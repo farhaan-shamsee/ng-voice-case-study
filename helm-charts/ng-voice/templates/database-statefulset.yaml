@@ -49,6 +49,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
+            # TODO: Use the value of the label also
               {{- range $key, $value := .Values.mysql.nodeLabel }}
               - key: {{ $key }}
                 operator: Exists

@@ -40,11 +40,12 @@ mysql:
     size: 5Gi
   
   nodeLabel:
+    # The stateful set just checks if label with this KEY is present or not. The value is not being used currently. 
     db-node: "true"
   
   labels:
     app: mysql
-    project: ng-voice
+    project: ng-voice # this label is used in the Go Application to monitor the events
   
   # Backup configuration
   backup:
@@ -138,8 +139,8 @@ networkPolicy:
   database:
     name: db-allow-web-only
     allowFrom:
-      namespace: web-server
-      podLabel: mysql-client
+      namespace: web-server # Namespace to allow traffic from
+      podLabel: mysql-client # The Pod should be labelled as access=mysql-client
 
 # Secondary Network (Multus)
 secondaryNetwork:

@@ -4,13 +4,10 @@ metadata:
   name: ng-voice-cluster
 servers: 1
 agents: 2
-image: rancher/k3s:v1.28.5-k3s1
+image: rancher/k3s:v1.31.5-k3s1
 
 ports:
-  - port: 8080:80
-    nodeFilters:
-      - loadbalancer
-  - port: 8443:443
+  - port: 30000-30100:30000-30100
     nodeFilters:
       - loadbalancer
 
@@ -23,12 +20,12 @@ options:
       - arg: --disable=traefik
         nodeFilters:
           - server:*
+      - arg: --node-label=db-node=node-1
+        nodeFilters:
+          - agent:0
+      - arg: --node-label=db-node=node-2
+        nodeFilters:
+          - agent:1
   kubeconfig:
     updateDefaultKubeconfig: true
     switchCurrentContext: true
-
-registries:
-  create:
-    name: ng-voice-registry
-    host: "0.0.0.0"
-    hostPort: "5000"
