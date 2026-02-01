@@ -109,6 +109,7 @@ webServer:
   labels:
     app: web-server
     access: mysql-client
+    project: ng-voice
   
   nginx:
     config: |

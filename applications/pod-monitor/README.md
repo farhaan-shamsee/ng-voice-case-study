@@ -14,7 +14,7 @@ This application demonstrates:
 
 ## Prerequisites
 
-- Go 1.21 or later
+- Go 1.23 or later
 - kubectl access to a Kubernetes cluster
 - Docker (for building container image)
 
@@ -40,11 +40,12 @@ go run main.go
 You'll see output like:
 
 ```sh
-2026/01/31 10:00:00 Starting pod watcher...
-2026/01/31 10:00:01 ADDED: Pod database/mysql-0
-2026/01/31 10:00:01 ADDED: Pod database/mysql-1
-2026/01/31 10:00:02 ADDED: Pod web-server/web-server-abc123
-2026/01/31 10:00:02 MODIFIED: Pod web-server/web-server-abc123
+2026/02/01 12:25:55 Starting pod watcher...
+2026/02/01 12:25:55 [CREATED] database/mysql-0 | Phase=Running
+2026/02/01 12:25:55 [CREATED] database/mysql-1 | Phase=Running
+2026/02/01 12:25:55 [CREATED] web-server/web-server-ddbb87f44-7mkww | Phase=Running
+2026/02/01 12:25:55 [CREATED] web-server/web-server-ddbb87f44-fklml | Phase=Running
+2026/02/01 12:25:55 [CREATED] web-server/web-server-ddbb87f44-rg4kx | Phase=Running
 ```
 
 ## Building
@@ -61,8 +62,6 @@ go build -o pod-watcher main.go
 ```bash
 docker build -t ng-voice/pod-watcher:v1.0 .
 ```
-
-The Dockerfile uses multi-stage build to keep the final image small (~25MB).
 
 ## Deploying to Kubernetes
 
@@ -122,7 +121,7 @@ spec:
       serviceAccountName: pod-watcher
       containers:
       - name: controller
-        image: ng-voice/pod-watcher:v1.0
+        image: farhaanshamsee/pod-watcher:v1.0
         imagePullPolicy: IfNotPresent
         resources:
           requests:
@@ -157,7 +156,7 @@ main()
 - Falls back to local kubeconfig (~/.kube/config)
 
 **watchPods():**
-- Creates a watcher for all pods across all namespaces
+- Creates a watcher for all pods across all namespaces filtered by label `project=ng-voice`
 - Listens for Added, Modified, Deleted events
 - Returns on error (handled by reconnection loop)
 
@@ -167,92 +166,3 @@ main()
 2. **Watch Setup**: Creates a watch on pods resource
 3. **Event Loop**: Processes events as they arrive
 4. **Reconnection**: Automatically reconnects if watch fails
-
-## Extending the Controller
-
-### Watch Specific Namespace
-
-```go
-watcher, err := clientset.CoreV1().Pods("database").Watch(context.TODO(), metav1.ListOptions{})
-```
-
-### Filter by Label
-
-```go
-watcher, err := clientset.CoreV1().Pods("").Watch(context.TODO(), metav1.ListOptions{
-    LabelSelector: "app=mysql",
-})
-```
-
-### Take Actions
-
-```go
-case watch.Added:
-    log.Printf("New pod detected: %s/%s", pod.Namespace, pod.Name)
-    // Send notification, update database, etc.
-    
-case watch.Deleted:
-    log.Printf("Pod deleted: %s/%s", pod.Namespace, pod.Name)
-    // Clean up resources, alert team, etc.
-```
-
-## Dependencies
-
-Defined in `go.mod`:
-
-```go
-require (
-    k8s.io/api v0.29.0
-    k8s.io/apimachinery v0.29.0
-    k8s.io/client-go v0.29.0
-)
-```
-
-## Troubleshooting
-
-### "cannot load kubeconfig"
-
-Ensure kubectl is configured:
-```bash
-kubectl cluster-info
-```
-
-### "Forbidden" errors in cluster
-
-Check RBAC permissions:
-```bash
-kubectl get clusterrole pod-watcher
-kubectl get clusterrolebinding pod-watcher
-```
-
-### Watch connection drops
-
-The controller automatically reconnects. Check logs:
-```bash
-kubectl logs -f deployment/pod-watcher
-```
-
-## Performance
-
-- **Memory**: ~10-20MB
-- **CPU**: <1% on typical clusters
-- **Network**: Minimal (watch API is efficient)
-
-## Use Cases
-
-- Pod lifecycle monitoring
-- Auto-scaling triggers
-- Compliance logging
-- Resource cleanup
-- Notification systems
-- Metrics collection
-
-## Further Reading
-
-- [Kubernetes Client-Go](https://github.com/kubernetes/client-go)
-- [Sample Controller](https://github.com/kubernetes/sample-controller)
-- [Controller Runtime](https://github.com/kubernetes-sigs/controller-runtime)
-
-## License
-
-Educational/Demo purposes
