@@ -8,6 +8,8 @@ metadata:
     app: mysql-backup
 spec:
   schedule: {{ .Values.mysql.backup.internal.schedule | quote }}
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
       template:
@@ -31,7 +33,7 @@ spec:
                 | gzip > /backup/backup-$TIMESTAMP.sql.gz
 
               # keep only last {{ .Values.mysql.backup.internal.retention }} backups
-              ls -tp /backup | tail -n +{{ add1 (atoi .Values.mysql.backup.internal.retention) }} | xargs -I {} rm -- /backup/{}
+              ls -tp /backup/backup-*.sql.gz 2>/dev/null | tail -n +{{ add1 (atoi .Values.mysql.backup.internal.retention) }} | while read f; do rm -f "$f"; done || true
             env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:

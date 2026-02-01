@@ -36,7 +36,7 @@ mysql:
   
   persistence:
     enabled: true
-    storageClass: "local-path"
+    storageClass: "standard"
     size: 5Gi
   
   nodeLabel:
@@ -52,7 +52,7 @@ mysql:
     enabled: true
     pvc:
       name: mysql-backup
-      storageClass: "local-path"
+      storageClass: "standard"
       size: 2Gi
     
     internal:

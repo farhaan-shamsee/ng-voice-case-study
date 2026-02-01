@@ -19,7 +19,9 @@ spec:
         matchLabels:
         # TODD: Make this dynamic
           access: {{ .Values.networkPolicy.database.allowFrom.podLabel }}
-    
+    - podSelector:
+        matchLabels:
+          app: mysql-backup
     ports:
     - protocol: TCP
       port: {{ .Values.mysql.service.port }}
