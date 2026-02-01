@@ -48,7 +48,3 @@ vendor/
 
 # Logs
 *.log
-
-# Documentation
-**/README.md
-README-backup.md
