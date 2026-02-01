@@ -11,6 +11,8 @@ spec:
       project: ng-voice
   template:
     metadata:
+      annotations:
+          k8s.v1.cni.cncf.io/networks: secondary-network
       labels:
         app: web-server
         project: ng-voice
