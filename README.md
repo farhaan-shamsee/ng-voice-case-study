@@ -15,6 +15,7 @@ This repository implements the case study requirements end to end on Kubernetes:
 - `Docker`, `kind` and `kubectl`.
 - `helm` v3 installed.
 - Basic DNS resolution inside the cluster.
+
 ## Deployment
 
 ### Local Cluster (kind)
@@ -25,11 +26,7 @@ Create a kind cluster with one control-plane and two worker nodes, with node lab
 kind create cluster --config ./infrastructure/local/kind/cluster-config.yaml
 
 # Install CNI plugins on the node, this is required for multi-networking support
-docker ps # List running containers to get the kind node name
-docker exec -it <kind-node-name> sh
-cd /tmp
-curl -L -o cni-plugins.tgz https://github.com/containernetworking/plugins/releases/download/v1.6.2/cni-plugins-linux-amd64-v1.6.2.tgz
-tar -C /opt/cni/bin -xzf cni-plugins.tgz
+sh ./infrastructure/local/kind/install-cni-nodes.sh
 
 ```
 
@@ -150,6 +147,8 @@ Optional off-cluster backups to S3 can be enabled via a CronJob that syncs `/bac
 
 - Implemented using Multus CNI to attach an additional network interface to the `web-server` pods.
 - Used a simple bridge network for demonstration.
+
+> Improvement Note: Current helm chart setup is not handling the CRDs installation properly. After Multus DeamonSet is up and running, we have to manually once restart the web-server deployment to pickup the network attachment definition.
 
 ### 7. Scheduling Specific DB Replicas to Nodes
 
