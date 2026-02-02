@@ -64,7 +64,7 @@ mysql:
       retention: "50"
     
     s3:
-      enabled: true
+      enabled: false
       schedule: "0 3 * * *"
       bucket: "farhaan-shamsee-ng-voice-backups"
       region: "us-east-1"
