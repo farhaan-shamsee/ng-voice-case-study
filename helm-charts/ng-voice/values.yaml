@@ -57,16 +57,16 @@ mysql:
     
     internal:
       enabled: true
-      schedule: "*/2 * * * *"
+      schedule: "*/30 * * * *"
       image:
         repository: mysql
         tag: "8.0"
-      retention: "7"
+      retention: "50"
     
     s3:
-      enabled: false
+      enabled: true
       schedule: "0 3 * * *"
-      bucket: "my-mysql-backups"
+      bucket: "farhaan-shamsee-ng-voice-backups"
       region: "us-east-1"
       image:
         repository: amazon/aws-cli

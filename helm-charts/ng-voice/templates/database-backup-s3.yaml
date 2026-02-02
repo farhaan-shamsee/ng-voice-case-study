@@ -27,7 +27,7 @@ spec:
             - |
               set -e
               echo "Syncing backups to S3..."
-              aws s3 sync /backup s3://{{ .Values.mysql.backup.s3.bucket }} --delete --storage-class STANDARD_IA
+              aws s3 sync /backup s3://{{ .Values.mysql.backup.s3.bucket }} --storage-class STANDARD
               echo "Done."
             env:
             - name: AWS_ACCESS_KEY_ID
