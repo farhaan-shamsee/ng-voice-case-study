@@ -2,11 +2,12 @@
 
 ## Table of Contents
 
+- [Quick Start](#quick-start)
 - [Overview](#overview)
 - [Architecture Design](#architecture-design)
 - [Steps to Deploy](#steps-to-deploy)
   - [Prerequisites](#prerequisites)
-  - [Step 1: Setup Infrastructure (KIND cluster)](#step-1-setup-infrastructurekind-cluster)
+  - [Step 1: Setup Infrastructure (KIND Cluster)](#step-1-setup-infrastructurekind-cluster)
   - [Step 2: Install via Helm](#step-2-install-via-helm)
 - [Task-Wise Implementation](#task-wise-implementation)
   - [1. Kubernetes Cluster](#1-kubernetes-cluster)
@@ -19,12 +20,38 @@
 - [Golang Pod Watcher](#golang-pod-watcher)
 - [Validation](#validation)
 - [Deliverables](#deliverables)
+- [Future Improvements](#future-improvements)
+
+
+## Quick Start
+
+```sh
+# Clone repository
+git clone https://github.com/farhaan-shamsee/ng-voice-case-study.git
+cd ng-voice-case-study
+
+# Create KIND cluster with labeled nodes
+kind create cluster --config ./infrastructure/local/kind/cluster-config.yaml
+
+# Install CNI plugins (required for Multus)
+sh ./infrastructure/local/kind/install-cni-nodes.sh
+
+# Deploy everything with Helm
+helm install ng-voice ./helm-charts/ng-voice -n default
+
+# Access web server
+kubectl port-forward -n web-server svc/web-server 8080:80
+# Open http://localhost:8080
+
+# View pod watcher logs
+kubectl logs -f deployment/pod-watcher -n default
+```
 
 ## Overview
 
 This repository implements the case study requirements end to end on Kubernetes:
 
-- Persistent MySQL/MariaDB database
+- Persistent MySQL database with StatefulSet
 - Multi-replica web server with custom configuration and init-time content mutation
 - Enforced network isolation to the database
 - Disaster recovery strategy with backup and restore verification, scheduling strategies for database replicas
@@ -54,7 +81,7 @@ graph TB
         
         subgraph DBNS["database namespace"]
             MySQL0[mysql-0<br/>eth0: 10.244.1.20]
-            MySQL1[ mysql-1<br/>eth0: 10.244.2.21]
+            MySQL1[mysql-1<br/>eth0: 10.244.2.21]
             PVC0[(PVC-0<br/>5Gi)]
             PVC1[(PVC-1<br/>5Gi)]
             BackupCron[Backup CronJob]
@@ -112,12 +139,14 @@ graph TB
 
 ## Steps to Deploy
 
+**Time to Deploy:** ~10-15 minutes 
+
 ### Prerequisites
 
 - `Docker`, `kind` and `kubectl`.
 - `helm` v3 installed.
 
-### Step 1: Setup Infrastructure(KIND cluster)
+### Step 1: Setup Infrastructure(KIND Cluster)
 
 Create a kind cluster with one control-plane and two worker nodes, with node labels for database scheduling:
 
@@ -129,7 +158,7 @@ sh ./infrastructure/local/kind/install-cni-nodes.sh
 
 ```
 
-This labels both worker nodes with `db-node=node-1` and `db-node=node-2`, allowing the MySQL `StatefulSet` to schedule pods based on the `nodeAffinity` rules defined in the chart.
+Worker nodes are labeled to control database pod placement.
 
 ### Step 2: Install via Helm
 
@@ -137,6 +166,22 @@ From the Helm chart directory (replace `.` if needed):
 
 ```sh
 helm install ng-voice ./helm-charts/ng-voice -n default
+```
+
+Verify deployment:
+
+```sh
+# Check all pods are running
+kubectl get pods --all-namespaces
+
+# Expected output:
+# NAMESPACE     NAME                          READY   STATUS    RESTARTS   AGE
+# database      mysql-0                       1/1     Running   0          2m
+# database      mysql-1                       1/1     Running   0          2m
+# web-server    web-server-xxx                1/1     Running   0          2m
+# web-server    web-server-xxx                1/1     Running   0          2m
+# web-server    web-server-xxx                1/1     Running   0          2m
+# default       pod-watcher-xxx               1/1     Running   0          2m
 ```
 
 To customize replicas, resources, and configuration:
@@ -168,10 +213,11 @@ kubectl -n web-server port-forward svc/web-server 8080:80
 
 ### 2. Database with Persistent Data (MySQL)
 
-> Requirement: Deploy a DB cluster on K8s with persistant data (MySQL or MariaDB).
+> Requirement: Deploy a DB cluster on K8s with persistent data (MySQL or MariaDB).
 
 - Implemented as a `StatefulSet` with 2 replicas in the `database` namespace.
-- Persistent storage via `PersistentVolumeClaim` (5Gi per pod) bound to each pod (`mysql-0`, `mysql-1`).
+- Persistent storage via `PersistentVolumeClaim` (5Gi per pod) bound to each replica (`mysql-0`, `mysql-1`).
+
 
 ### 3. Web Server with Multiple Replicas and Custom Config
 
@@ -247,7 +293,12 @@ Optional off-cluster backups to S3 can be enabled via a CronJob that syncs `/bac
 - Implemented using Multus CNI to attach an additional network interface to the `web-server` pods.
 - Used a simple bridge network for demonstration.
 
-> Improvement Note: Current helm chart setup is not handling the CRDs installation properly. After Multus DeamonSet is up and running, we have to manually once restart the web-server deployment to pickup the network attachment definition.
+> **Note:** Multus NetworkAttachmentDefinition CRDs are installed separately. After Multus DaemonSet is running, restart the web-server deployment to attach secondary network interfaces:
+> ```sh
+> kubectl rollout restart deployment/web-server -n web-server
+> ```
+> This is a known limitation of the current Helm chart setup and can be improved with Helm hooks or operators in production.
+
 
 ### 7. Scheduling Specific DB Replicas to Nodes
 
@@ -276,7 +327,7 @@ Detailed code structure and functions are documented [here](./applications/go-co
 
 ## Validation
 
-- Load balancing: As this setup uses NodePort Service, try opening the web server in different browser tabs or via curl to see responses from different pods.
+- Load balancing: Load balancing can be verified by repeatedly curling the service and observing varying pod responses. Note: kubectl port-forward does not load balance.
 - NetworkPolicy: Launch test pods across namespaces; verify only `web-server` pods with `access=mysql-client` label can connect to `mysql.database:3306`.
 - DR: Follow the verification steps above to confirm backup creation and successful restore.
 
@@ -288,7 +339,8 @@ Detailed code structure and functions are documented [here](./applications/go-co
 4. Dockerfiles, [here](./Dockerfiles)
 5. Access to the cluster preferably or a working demo: as we have used KIND cluster, steps are provided to recreate the entire setup locally.
 
-## TODO:
-1. Helm chart can be hosted in a chart repository for easier consumption.
-2. CRD installation for Multus needs to be fixed.
-3. Terraform EKS setup is not functional yet, need to fix and test it.
+## Future Improvements
+
+1. **Helm Repository:** Host chart in OCI registry (e.g., ghcr.io) for versioned releases
+2. **Multus CRD Management:** Use Helm hooks or operators for automatic CRD lifecycle
+3. **Cloud Deployment:** Complete Terraform EKS module with cost optimization
