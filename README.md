@@ -1,5 +1,25 @@
 # NG Voice DevOps Case Study
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Architecture Design](#architecture-design)
+- [Steps to Deploy](#steps-to-deploy)
+  - [Prerequisites](#prerequisites)
+  - [Step 1: Setup Infrastructure (KIND cluster)](#step-1-setup-infrastructurekind-cluster)
+  - [Step 2: Install via Helm](#step-2-install-via-helm)
+- [Task-Wise Implementation](#task-wise-implementation)
+  - [1. Kubernetes Cluster](#1-kubernetes-cluster)
+  - [2. Database with Persistent Data (MySQL)](#2-database-with-persistent-data-mysql)
+  - [3. Web Server with Multiple Replicas and Custom Config](#3-web-server-with-multiple-replicas-and-custom-config)
+  - [4. Restrict DB Access to Web Pods Only (Port 3306)](#4-restrict-db-access-to-web-pods-only-port-3306)
+  - [5. Disaster Recovery (DR)](#5-disaster-recovery-dr)
+  - [6. Multi Networking](#6-multi-networking)
+  - [7. Scheduling Specific DB Replicas to Nodes](#7-scheduling-specific-db-replicas-to-nodes)
+- [Golang Pod Watcher](#golang-pod-watcher)
+- [Validation](#validation)
+- [Deliverables](#deliverables)
+
 ## Overview
 
 This repository implements the case study requirements end to end on Kubernetes:
@@ -259,3 +279,16 @@ Detailed code structure and functions are documented [here](./applications/go-co
 - Load balancing: As this setup uses NodePort Service, try opening the web server in different browser tabs or via curl to see responses from different pods.
 - NetworkPolicy: Launch test pods across namespaces; verify only `web-server` pods with `access=mysql-client` label can connect to `mysql.database:3306`.
 - DR: Follow the verification steps above to confirm backup creation and successful restore.
+
+## Deliverables
+
+1. Design of the internal and external connections, [here](#architecture-design)
+2. Helm-charts, [here](./helm-charts/ng-voice)
+3. Source code Golang Applications, [here](./applications/go-controller)
+4. Dockerfiles, [here](./Dockerfiles)
+5. Access to the cluster preferably or a working demo: as we have used KIND cluster, steps are provided to recreate the entire setup locally.
+
+## TODO:
+1. Helm chart can be hosted in a chart repository for easier consumption.
+2. CRD installation for Multus needs to be fixed.
+3. Terraform EKS setup is not functional yet, need to fix and test it.
