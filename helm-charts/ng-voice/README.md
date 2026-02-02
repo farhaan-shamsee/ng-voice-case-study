@@ -1,12 +1,12 @@
 # NG-Voice Helm Chart
 
-A Helm chart for deploying the NG-Voice case study application with MySQL database and Nginx web server.
+A Helm chart for deploying the NG-Voice DevOps case study application with MySQL database and Nginx web server.
 
 ## Prerequisites
 
 - Kubernetes 1.19+
 - Helm 3.0+
-- Storage class available for persistent volumes (default: `local-path`)
+- Storage class available for persistent volumes (default: `standard`)
 
 ## Components
 

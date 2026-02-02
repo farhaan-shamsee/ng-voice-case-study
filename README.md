@@ -10,15 +10,96 @@ This repository implements the case study requirements end to end on Kubernetes:
 - Disaster recovery strategy with backup and restore verification, scheduling strategies for database replicas
 - Small Golang application to monitor pod lifecycle events. All components are deployable via Helm.
 
-## Prerequisites
+# Architecture Design
+
+## Network Topology
+
+```mermaid
+graph TB
+    subgraph External
+        Browser[User Browser]
+        kubectl[kubectl]
+        S3[AWS S3]
+        Registry[Image Registry]
+    end
+    
+    subgraph Kubernetes["KIND Kubernetes Cluster"]
+        API[API Server]
+        
+        subgraph WebNS["web-server namespace"]
+            WS1[web-server-1<br/>eth0: 10.244.1.5<br/>net1: 192.168.100.10]
+            WS2[web-server-2<br/>eth0: 10.244.2.8<br/>net1: 192.168.100.11]
+            WS3[web-server-3<br/>eth0: 10.244.1.9<br/>net1: 192.168.100.12]
+            WSService[Service: web-server<br/>NodePort 30090]
+            ConfigMap[ConfigMap<br/>nginx.conf]
+        end
+        
+        subgraph DBNS["database namespace"]
+            MySQL0[mysql-0<br/>eth0: 10.244.1.20]
+            MySQL1[ mysql-1<br/>eth0: 10.244.2.21]
+            PVC0[(PVC-0<br/>5Gi)]
+            PVC1[(PVC-1<br/>5Gi)]
+            BackupCron[Backup CronJob]
+            BackupPVC[(Backup PVC<br/>2Gi)]
+            NP{NetworkPolicy}
+        end
+        
+        subgraph MonitorNS["default namespace"]
+            Watcher[Pod Watcher<br/>Go App]
+        end
+        
+        subgraph MultusConfig["Multus Configuration"]
+            NAD[NetworkAttachmentDefinition<br/>secondary-network<br/>192.168.50.0/24]
+        end
+    end
+    
+    Browser -->|HTTP:30090| WSService
+    kubectl -->|HTTPS:6443| API
+    
+    WSService --> WS1
+    WSService --> WS2
+    WSService --> WS3
+    
+    ConfigMap -.-> WS1
+    NAD -.->|Attaches net1| WS1
+    NAD -.->|Attaches net1| WS2
+    NAD -.->|Attaches net1| WS3
+    
+    WS1 -->|:3306| NP
+    WS2 -->|:3306| NP
+    WS3 -->|:3306| NP
+    
+    NP -->|✅ Allowed| MySQL0
+    NP -->|✅ Allowed| MySQL1
+    
+    MySQL0 <-.->|Replication| MySQL1
+    MySQL0 --> PVC0
+    MySQL1 --> PVC1
+    
+    BackupCron -->|exec mysqldump| MySQL0
+    BackupCron --> BackupPVC
+    BackupPVC -.->|Optional sync| S3
+    
+    Watcher -->|Watch Events| API
+    
+    Registry -.->|Pull Images| WS1
+    Registry -.->|Pull Images| MySQL0
+
+    style NP fill:#ff6b6b
+    style WSService fill:#4ecdc4
+    style NAD fill:#ffe66d
+    style Watcher fill:#95e1d3
+
+```
+
+## Steps to Deploy
+
+### Prerequisites
 
 - `Docker`, `kind` and `kubectl`.
 - `helm` v3 installed.
-- Basic DNS resolution inside the cluster.
 
-## Deployment
-
-### Local Cluster (kind)
+### Step 1: Setup Infrastructure(KIND cluster)
 
 Create a kind cluster with one control-plane and two worker nodes, with node labels for database scheduling:
 
@@ -32,7 +113,7 @@ sh ./infrastructure/local/kind/install-cni-nodes.sh
 
 This labels both worker nodes with `db-node=node-1` and `db-node=node-2`, allowing the MySQL `StatefulSet` to schedule pods based on the `nodeAffinity` rules defined in the chart.
 
-### Install via Helm
+### Step 2: Install via Helm
 
 From the Helm chart directory (replace `.` if needed):
 
