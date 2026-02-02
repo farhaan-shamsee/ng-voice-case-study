@@ -12,8 +12,6 @@ This repository implements the case study requirements end to end on Kubernetes:
 
 # Architecture Design
 
-## Network Topology
-
 ```mermaid
 graph TB
     subgraph External
