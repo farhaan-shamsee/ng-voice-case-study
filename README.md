@@ -320,10 +320,10 @@ What is implemented:
 Run locally (example):
 
 ```sh
-go run ./applications/go-controller/main.go
+go run ./applications/pod-monitor/main.go
 ```
 
-Detailed code structure and functions are documented [here](./applications/go-controller/README.md).
+Detailed code structure and functions are documented [here](./applications/pod-monitor/README.md).
 
 ## Validation
 
@@ -335,8 +335,8 @@ Detailed code structure and functions are documented [here](./applications/go-co
 
 1. Design of the internal and external connections, [here](#architecture-design)
 2. Helm-charts, [here](./helm-charts/ng-voice)
-3. Source code Golang Applications, [here](./applications/go-controller)
-4. Dockerfiles, [here](./Dockerfiles)
+3. Source code Golang Applications, [here](./applications/pod-monitor)
+4. Dockerfiles, [here](./applications/pod-monitor/Dockerfile)
 5. Access to the cluster preferably or a working demo: as we have used KIND cluster, steps are provided to recreate the entire setup locally.
 
 ## Future Improvements
