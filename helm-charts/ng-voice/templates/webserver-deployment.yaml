@@ -26,7 +26,22 @@ spec:
           - |
             POD_NAME=$(hostname)
             HOST_SUFFIX=${POD_NAME: -5}
-            echo "<h2>serving-host=Host-$HOST_SUFFIX</h2>" > /init-html/index.html
+            cat > /init-html/index.html <<EOF
+            <!DOCTYPE html>
+            <html>
+            <head><title>Web Server</title></head>
+            <body>
+              <h1>Nginx Web Server</h1>
+              <h2>Pod IP: $POD_IP</h2>
+              <h2>serving-host=Host-$HOST_SUFFIX</h2>
+            </body>
+            </html>
+            EOF
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
         volumeMounts:
         - name: init-volume
           mountPath: /init-html
