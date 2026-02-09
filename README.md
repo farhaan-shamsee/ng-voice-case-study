@@ -2,26 +2,28 @@
 
 ## Table of Contents
 
-- [Quick Start](#quick-start)
-- [Overview](#overview)
+- [NG Voice DevOps Case Study](#ng-voice-devops-case-study)
+  - [Table of Contents](#table-of-contents)
+  - [Quick Start](#quick-start)
+  - [Overview](#overview)
 - [Architecture Design](#architecture-design)
-- [Steps to Deploy](#steps-to-deploy)
-  - [Prerequisites](#prerequisites)
-  - [Step 1: Setup Infrastructure (KIND Cluster)](#step-1-setup-infrastructurekind-cluster)
-  - [Step 2: Install via Helm](#step-2-install-via-helm)
-- [Task-Wise Implementation](#task-wise-implementation)
-  - [1. Kubernetes Cluster](#1-kubernetes-cluster)
-  - [2. Database with Persistent Data (MySQL)](#2-database-with-persistent-data-mysql)
-  - [3. Web Server with Multiple Replicas and Custom Config](#3-web-server-with-multiple-replicas-and-custom-config)
-  - [4. Restrict DB Access to Web Pods Only (Port 3306)](#4-restrict-db-access-to-web-pods-only-port-3306)
-  - [5. Disaster Recovery (DR)](#5-disaster-recovery-dr)
-  - [6. Multi Networking](#6-multi-networking)
-  - [7. Scheduling Specific DB Replicas to Nodes](#7-scheduling-specific-db-replicas-to-nodes)
-- [Golang Pod Watcher](#golang-pod-watcher)
-- [Validation](#validation)
-- [Deliverables](#deliverables)
-- [Future Improvements](#future-improvements)
-
+  - [Steps to Deploy](#steps-to-deploy)
+    - [Prerequisites](#prerequisites)
+    - [Step 1: Setup Infrastructure(KIND Cluster)](#step-1-setup-infrastructurekind-cluster)
+    - [Step 2: Install via Helm](#step-2-install-via-helm)
+  - [Task-Wise Implementation](#task-wise-implementation)
+    - [1. Kubernetes Cluster](#1-kubernetes-cluster)
+    - [2. Database with Persistent Data (MySQL)](#2-database-with-persistent-data-mysql)
+    - [3. Web Server with Multiple Replicas and Custom Config](#3-web-server-with-multiple-replicas-and-custom-config)
+    - [4. Restrict DB Access to Web Pods Only (Port 3306)](#4-restrict-db-access-to-web-pods-only-port-3306)
+    - [5. Disaster Recovery (DR)](#5-disaster-recovery-dr)
+      - [DR Verification Steps](#dr-verification-steps)
+    - [6. Multi Networking](#6-multi-networking)
+    - [7. Scheduling Specific DB Replicas to Nodes](#7-scheduling-specific-db-replicas-to-nodes)
+  - [Golang Pod Watcher](#golang-pod-watcher)
+  - [Validation](#validation)
+  - [Deliverables](#deliverables)
+  - [Future Improvements](#future-improvements)
 
 ## Quick Start
 
@@ -38,6 +40,9 @@ sh ./infrastructure/local/kind/install-cni-nodes.sh
 
 # Deploy everything with Helm
 helm install ng-voice ./helm-charts/ng-voice -n default
+
+# Restart web-server deployment to attach Multus secondary interfaces
+kubectl rollout restart deployment/web-server -n web-server
 
 # Access web server
 kubectl port-forward -n web-server svc/web-server 8080:80
