@@ -1,4 +1,4 @@
-{{- if and .Values.mysql.enabled .Values.networkPolicy.enabled }}
+{{- if .Values.networkPolicy.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -7,7 +7,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: {{ .Values.mysql.labels.app }}
+      app.kubernetes.io/name: mysql
   policyTypes:
   - Ingress
   ingress:
@@ -17,12 +17,14 @@ spec:
           kubernetes.io/metadata.name: {{ .Values.networkPolicy.database.allowFrom.namespace }}
       podSelector:
         matchLabels:
-        # TODD: Make this dynamic
           access: {{ .Values.networkPolicy.database.allowFrom.podLabel }}
     - podSelector:
         matchLabels:
           app: mysql-backup
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: mysql
     ports:
     - protocol: TCP
-      port: {{ .Values.mysql.service.port }}
+      port: 3306
 {{- end }}

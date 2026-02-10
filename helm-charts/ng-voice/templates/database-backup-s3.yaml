@@ -1,4 +1,4 @@
-{{- if and .Values.mysql.enabled .Values.mysql.backup.enabled .Values.mysql.backup.s3.enabled }}
+{{- if and .Values.backup.enabled .Values.backup.s3.enabled }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -7,7 +7,7 @@ metadata:
   labels:
     app: mysql-backup
 spec:
-  schedule: {{ .Values.mysql.backup.s3.schedule | quote }}
+  schedule: {{ .Values.backup.s3.schedule | quote }}
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
   jobTemplate:
@@ -20,33 +20,33 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: s3-sync
-            image: {{ .Values.mysql.backup.s3.image.repository }}:{{ .Values.mysql.backup.s3.image.tag }}
+            image: {{ .Values.backup.s3.image.repository }}:{{ .Values.backup.s3.image.tag }}
             command:
             - sh
             - -c
             - |
               set -e
               echo "Syncing backups to S3..."
-              aws s3 sync /backup s3://{{ .Values.mysql.backup.s3.bucket }} --storage-class STANDARD
+              aws s3 sync /backup s3://{{ .Values.backup.s3.bucket }} --storage-class STANDARD
               echo "Done."
             env:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.mysql.backup.s3.awsSecretName }}
+                  name: {{ .Values.backup.s3.awsSecretName }}
                   key: AWS_ACCESS_KEY_ID
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.mysql.backup.s3.awsSecretName }}
+                  name: {{ .Values.backup.s3.awsSecretName }}
                   key: AWS_SECRET_ACCESS_KEY
             - name: AWS_DEFAULT_REGION
-              value: {{ .Values.mysql.backup.s3.region | quote }}
+              value: {{ .Values.backup.s3.region | quote }}
             volumeMounts:
             - name: backup-volume
               mountPath: /backup
           volumes:
           - name: backup-volume
             persistentVolumeClaim:
-              claimName: {{ .Values.mysql.backup.pvc.name }}
+              claimName: {{ .Values.backup.pvc.name }}
 {{- end }}

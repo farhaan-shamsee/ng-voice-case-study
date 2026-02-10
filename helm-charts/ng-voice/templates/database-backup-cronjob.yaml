@@ -1,4 +1,4 @@
-{{- if and .Values.mysql.enabled .Values.mysql.backup.enabled .Values.mysql.backup.internal.enabled }}
+{{- if and .Values.backup.enabled .Values.backup.internal.enabled }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -7,7 +7,7 @@ metadata:
   labels:
     app: mysql-backup
 spec:
-  schedule: {{ .Values.mysql.backup.internal.schedule | quote }}
+  schedule: {{ .Values.backup.internal.schedule | quote }}
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
   jobTemplate:
@@ -20,31 +20,31 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: backup
-            image: {{ .Values.mysql.backup.internal.image.repository }}:{{ .Values.mysql.backup.internal.image.tag }}
+            image: {{ .Values.backup.internal.image.repository }}:{{ .Values.backup.internal.image.tag }}
             command:
             - sh
             - -c
             - |
               TIMESTAMP=$(date +%F-%H-%M-%S)
 
-              mysqldump -h {{ .Values.mysql.service.name }}.{{ .Values.namespaces.database }} \
+              mysqldump -h {{ .Release.Name }}-mysql-primary.{{ .Values.namespaces.database }} \
                 -uroot -p$MYSQL_ROOT_PASSWORD \
                 --all-databases \
                 | gzip > /backup/backup-$TIMESTAMP.sql.gz
 
-              # keep only last {{ .Values.mysql.backup.internal.retention }} backups
-              ls -tp /backup/backup-*.sql.gz 2>/dev/null | tail -n +{{ add1 (atoi .Values.mysql.backup.internal.retention) }} | while read f; do rm -f "$f"; done || true
+              # keep only last {{ .Values.backup.internal.retention }} backups
+              ls -tp /backup/backup-*.sql.gz 2>/dev/null | tail -n +{{ add1 (atoi .Values.backup.internal.retention) }} | while read f; do rm -f "$f"; done || true
             env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.mysql.secret.name }}
-                  key: password
+                  name: {{ .Values.mysql.auth.existingSecret }}
+                  key: mysql-root-password
             volumeMounts:
             - name: backup-volume
               mountPath: /backup
           volumes:
           - name: backup-volume
             persistentVolumeClaim:
-              claimName: {{ .Values.mysql.backup.pvc.name }}
+              claimName: {{ .Values.backup.pvc.name }}
 {{- end }}

@@ -5,74 +5,147 @@ namespaces:
   database: database
   webServer: web-server
 
-# MySQL Database Configuration
+# MySQL Database Configuration (Bitnami MySQL Chart)
 mysql:
-  enabled: true
-  name: mysql
-  replicas: 2
+  # Deploy MySQL in database namespace
+  namespaceOverride: database
+  
+  # Enable MySQL cluster with replication
+  architecture: replication
   image:
-    repository: mysql
-    tag: "8.0"
-    pullPolicy: IfNotPresent
+    registry: docker.io
+    repository: bitnamilegacy/mysql
+    tag: 9.4.0-debian-12-r1
+  auth:
+    rootPassword: "mysql_password"
+    database: "my_database"
+    username: ""
+    password: ""
+    replicationUser: "replicator"
+    replicationPassword: ""
+    existingSecret: "mysql-secret"
+    usePasswordFiles: true
   
-  secret:
-    name: mysql-secret
-    # Base64 encoded value of 'mysql_password'
-    password: bXlzcWxfcGFzc3dvcmQ=
-  
-  service:
-    name: mysql
-    port: 3306
-    type: ClusterIP
-    headless: true
-  
-  resources:
-    requests:
-      cpu: "250m"
-      memory: "512Mi"
-    limits:
-      cpu: "500m"
-      memory: "1Gi"
-  
-  persistence:
-    enabled: true
-    storageClass: "standard"
-    size: 5Gi
-  
-  nodeLabel:
-    # The stateful set just checks if label with this KEY is present or not. The value is not being used currently. 
-    db-node: "true"
-  
-  labels:
-    app: mysql
-    project: ng-voice # this label is used in the Go Application to monitor the events
-  
-  # Backup configuration
-  backup:
-    enabled: true
-    pvc:
-      name: mysql-backup
-      storageClass: "standard"
-      size: 2Gi
-    
-    internal:
+  # Primary node configuration
+  primary:
+    name: primary
+    persistence:
       enabled: true
-      schedule: "*/30 * * * *"
-      image:
-        repository: mysql
-        tag: "8.0"
-      retention: "50"
+      storageClass: "standard"
+      size: 10Gi
     
-    s3:
-      enabled: false
-      schedule: "0 3 * * *"
-      bucket: "farhaan-shamsee-ng-voice-backups"
-      region: "us-east-1"
-      image:
-        repository: amazon/aws-cli
-        tag: "latest"
-      # AWS credentials should be provided via secret
-      awsSecretName: aws-credentials
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "512Mi"
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+    
+    podLabels:
+      app: mysql
+      project: ng-voice
+    
+    # Pod anti-affinity - spread pods across different nodes
+    podAntiAffinityPreset: "hard"
+    
+    # Custom node affinity - require nodes with db-node label (Exists operator)
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: db-node
+              operator: Exists
+    
+    service:
+      type: ClusterIP
+      ports:
+        mysql: 3306
+  
+  # Secondary/Replica nodes configuration
+  secondary:
+    name: secondary
+    replicaCount: 1
+    
+    persistence:
+      enabled: true
+      storageClass: "standard"
+      size: 10Gi
+    
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "512Mi"
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+    
+    podLabels:
+      app: mysql
+      project: ng-voice
+    
+    # Pod anti-affinity - spread pods across different nodes
+    podAntiAffinityPreset: "hard"
+    
+    # Custom node affinity - require nodes with db-node label (Exists operator)
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: db-node
+              operator: Exists
+    
+    service:
+      type: ClusterIP
+      ports:
+        mysql: 3306
+  
+  # Metrics exporter (optional)
+  metrics:
+    enabled: false
+  
+  # Disable Bitnami's network policy - we use custom one
+  networkPolicy:
+    enabled: false
+  
+  # Service account
+  serviceAccount:
+    create: true
+    name: mysql-sa
+  
+  # Volume permissions
+  volumePermissions:
+    enabled: true
+    image:
+      repository: bitnamilegacy/os-shell
+
+# Backup configuration (kept for custom backup jobs)
+backup:
+  enabled: true
+  pvc:
+    name: mysql-backup
+    storageClass: "standard"
+    size: 2Gi
+  
+  internal:
+    enabled: true
+    schedule: "*/30 * * * *"
+    image:
+      repository: mysql
+      tag: "8.0"
+    retention: "50"
+  
+  s3:
+    enabled: false
+    schedule: "0 3 * * *"
+    bucket: "farhaan-shamsee-ng-voice-backups"
+    region: "us-east-1"
+    image:
+      repository: amazon/aws-cli
+      tag: "latest"
+    awsSecretName: aws-credentials
 
 # Web Server Configuration
 webServer:
